@@ -5,5 +5,6 @@ from . import learner
 from . import runner
 
 from .learner import (Learner1D, Learner2D, AverageLearner,
-                      BalancingLearner, DataSaver, IntegratorLearner)
+                      BalancingLearner, DataSaver, IntegratorLearner,
+                      LevelLearner1D)
 from .runner import Runner
