@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import atexit
 import concurrent.futures as concurrent
 
 import ipyparallel
@@ -43,8 +44,9 @@ class Runner:
         self.ioloop = ioloop if ioloop else asyncio.get_event_loop()
         # if we instantiate our own executor, then we are also responsible
         # for calling 'shutdown'
-        self.shutdown_executor = shutdown_executor or (executor is None)
         self.executor = ensure_async_executor(executor, self.ioloop)
+        if shutdown_executor or (executor is None):
+            atexit.register(self.executor.shutdown)
         self.learner = learner
         self.log = [] if log else None
 
@@ -100,8 +102,6 @@ class Runner:
                 for fut in remaining:
                     fut.cancel()
                 await asyncio.wait(remaining)
-            if self.shutdown_executor:
-                self.executor.shutdown()
 
 
 def replay_log(learner, log):
