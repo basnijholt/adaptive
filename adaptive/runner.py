@@ -121,7 +121,7 @@ def replay_log(learner, log):
 
 def ensure_async_executor(executor, ioloop):
     if executor is None:
-        executor = concurrent.ProcessPoolExecutor()
+        ioloop.set_default_executor(concurrent.ProcessPoolExecutor())
     elif isinstance(executor, concurrent.Executor):
         pass
     elif isinstance(executor, ipyparallel.Client):
@@ -158,7 +158,7 @@ class SequentialExecutor(concurrent.Executor):
 class _AsyncExecutor:
 
     def __init__(self, executor, ioloop):
-        assert isinstance(executor, concurrent.Executor)
+        assert executor is None or isinstance(executor, concurrent.Executor)
         self.executor = executor
         self.ioloop = ioloop
 
@@ -170,7 +170,7 @@ class _AsyncExecutor:
 
     @property
     def ncores(self):
-        ex = self.executor
+        ex = self.executor if self.executor is not None else self.ioloop._default_executor
         if isinstance(ex, ipyparallel.client.view.ViewExecutor):
             return len(ex.view)
         elif isinstance(ex, (concurrent.ProcessPoolExecutor,
