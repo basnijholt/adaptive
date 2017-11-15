@@ -305,7 +305,7 @@ class Learner2D(BaseLearner):
                 # it could fill up till a length smaller than `stack_till`.
                 if self.n >= 2**self.ndim:
                     # Only fill the stack if no more bounds left in _stack
-                    self._fill_stack(stack_till=n_left)
+                    self._fill_stack(stack_till=max(n_left, 10))
                 new_points, new_loss_improvements = self._split_stack(n_left)
                 points += new_points
                 loss_improvements += new_loss_improvements
