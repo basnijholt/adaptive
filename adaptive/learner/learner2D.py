@@ -3,7 +3,7 @@ import itertools
 
 import holoviews as hv
 import numpy as np
-from scipy import interpolate
+from scipy import interpolate, spatial
 
 from .base_learner import BaseLearner
 from .utils import restore
@@ -139,6 +139,8 @@ class Learner2D(BaseLearner):
 
         self.function = function
 
+        self.tri = None
+
     @property
     def vdim(self):
         return 1 if self._vdim is None else self._vdim
@@ -162,8 +164,11 @@ class Learner2D(BaseLearner):
                          list(self._interp.values()), axis=0)
 
     def ip(self):
-        points = self.scale(self.points)
-        return interpolate.LinearNDInterpolator(points, self.values)
+        if self.tri is None:
+            self.tri = spatial.Delaunay(self.scale(self.points),
+                                        incremental=True,
+                                        qhull_options='Q11 QJ')
+        return interpolate.LinearNDInterpolator(self.tri, self.values)
 
     @property
     def n_real(self):
@@ -227,6 +232,10 @@ class Learner2D(BaseLearner):
             if point == tuple(_point):
                 self._stack.pop(i)
                 break
+
+        # Add the points to the Delaunay object
+        if self.tri and value is not None:
+            self.tri.add_points([self.scale(point)])
 
     def _fill_stack(self, stack_till=None):
         if stack_till is None:
