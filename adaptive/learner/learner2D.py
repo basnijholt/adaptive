@@ -195,11 +195,7 @@ class Learner2D(BaseLearner):
             if self.bounds_are_done:
                 values_interp = self.ip()(points_interp)
             else:
-                # It is important not to return exact zeros because
-                # otherwise the algo will try to add the same point
-                # to the stack each time.
-                values_interp = np.random.rand(
-                    len(points_interp), self.vdim) * 1e-15
+                values_interp = np.zeros((len(points_interp), self.vdim))
 
             for point, value in zip(points_interp, values_interp):
                 assert point in self.data_combined
@@ -268,7 +264,7 @@ class Learner2D(BaseLearner):
             if len(self._stack) >= stack_till:
                 break
             else:
-                losses[jsimplex] = 0
+                losses[jsimplex] = -np.inf
 
     def _split_stack(self, n=None):
         points, loss_improvements = zip(*reversed(self._stack.items()))
