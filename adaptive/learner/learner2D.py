@@ -195,17 +195,21 @@ class Learner2D(BaseLearner):
 
     def add_point(self, point, value):
         point = tuple(point)
-        self.data_combined[point] = value
 
-        if value is None:
+        new_point = point not in self.data_combined
+        self.data_combined[point] = value
+        if value is None or new_point:
             if point not in self._bounds_points:
                 self.tri_combined.add_points([self.scale(point)])
-                self._interp.add(point)
+
+        if value is None:
+            self._interp.add(point)
         else:
             if self._vdim is None:
                 self._vdim = len(value) if hasattr(value, '__len__') else None
 
             if self.bounds_are_done:
+                assert point not in self.data  # XXX: this has to be
                 self.tri.add_points([self.scale(point)])
             self.data[point] = value
             self._interp.discard(point)
@@ -217,6 +221,7 @@ class Learner2D(BaseLearner):
             for points, tri in [(self.points, self.tri),
                                 (self.points_combined, self.tri_combined)]:
                 assert np.max(points - self.unscale(tri.points)) == 0
+            assert len(self.points_combined) == len(self.points) + len(self._interp)
 
     def _fill_stack(self, stack_till=1):
         if len(self.data_combined) < len(self.bounds) + 1:
@@ -237,6 +242,7 @@ class Learner2D(BaseLearner):
             if point_new in self.data_combined:
                 # XXX: maybe check whether the point_new is not very close the another point
                 losses[jsimplex] = -np.inf
+                assert True, 'Just checking whether this ever happens'
                 continue
 
             self._stack[point_new] = losses[jsimplex]
