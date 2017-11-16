@@ -109,7 +109,6 @@ class Learner2D(BaseLearner):
 
     def __init__(self, function, bounds, loss_per_triangle=None):
         self.loss_per_triangle = loss_per_triangle or _default_loss_per_triangle
-        self._vdim = None
         self.bounds = tuple((float(a), float(b)) for a, b in bounds)
         self.data = collections.OrderedDict()
         self.data_combined = collections.OrderedDict()
@@ -120,9 +119,11 @@ class Learner2D(BaseLearner):
         xy_scale = np.ptp(self.bounds, axis=1)
 
         def scale(points):
+            points = np.asarray(points)
             return (points - xy_mean) / xy_scale
 
         def unscale(points):
+            points = np.asarray(points)
             return points * xy_scale + xy_mean
 
         self.scale = scale
@@ -130,6 +131,7 @@ class Learner2D(BaseLearner):
 
         self._bounds_points = list(itertools.product(*bounds))
 
+        self._vdim = None
         self._tri = None
         self.tri_combined = spatial.Delaunay(self.scale(self._bounds_points),
                                              incremental=True,
@@ -182,7 +184,7 @@ class Learner2D(BaseLearner):
         if self._interp:
             points_interp = list(self._interp)
             if self.bounds_are_done:
-                values_interp = self.ip()(points_interp)
+                values_interp = self.ip()(self.scale(points_interp))
             else:
                 values_interp = np.zeros((len(points_interp), self.vdim))
 
