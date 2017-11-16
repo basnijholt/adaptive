@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import collections
+from copy import deepcopy
 import itertools
 
 import holoviews as hv
 import numpy as np
-from scipy import interpolate
+from scipy import interpolate, spatial
 
 from .base_learner import BaseLearner
 from .utils import restore
@@ -113,10 +114,10 @@ class Learner2D(BaseLearner):
         if self.ndim != 2:
             raise ValueError("Only 2-D sampling supported.")
         self.bounds = tuple((float(a), float(b)) for a, b in bounds)
-        self._points = np.zeros([100, self.ndim])
-        self._values = np.zeros([100, self.vdim], dtype=float)
+        self.data = collections.OrderedDict()
+        self.data_combined = collections.OrderedDict()
         self._stack = collections.OrderedDict()
-        self._interp = {}
+        self._interp = set()
 
         xy_mean = np.mean(self.bounds, axis=1)
         xy_scale = np.ptp(self.bounds, axis=1)
@@ -130,13 +131,17 @@ class Learner2D(BaseLearner):
         self.scale = scale
         self.unscale = unscale
 
-        # Keeps track till which index _points and _values are filled
-        self.n = 0
-
         self._bounds_points = list(itertools.product(*bounds))
 
-        # Add the loss improvement to the bounds in the stack
-        self._stack.update({p: np.inf for p in self._bounds_points})
+        self._tri = None
+        self.tri_combined = spatial.Delaunay(self.scale(self._bounds_points),
+                                             incremental=True,
+                                             qhull_options='Q11 QJ')
+
+        for point in self._bounds_points:
+            self.data_combined[point] = None
+            self._stack[point] = np.inf
+            self._interp.add(point)
 
         self.function = function
 
@@ -146,82 +151,76 @@ class Learner2D(BaseLearner):
 
     @property
     def points_combined(self):
-        return self._points[:self.n]
+        return np.array(list(self.data_combined.keys()))
 
     @property
     def values_combined(self):
-        return self._values[:self.n]
+        return np.array(list(self.data_combined.values()))
 
     @property
     def points(self):
-        return np.delete(self.points_combined,
-                         list(self._interp.values()), axis=0)
+        return np.array(list(self.data.keys()))
 
     @property
     def values(self):
-        return np.delete(self.values_combined,
-                         list(self._interp.values()), axis=0)
+        return np.array(list(self.data.values()))
+
+    @property
+    def n(self):
+        return len(self.data_combined)
 
     @property
     def n_real(self):
-        return self.n - len(self._interp)
+        return len(self.data)
+
+    @property
+    def bounds_are_done(self):
+        return not any(p in self._interp for p in self._bounds_points)
+
+    @property
+    def tri(self):
+        if self._tri is None:
+            self._tri = spatial.Delaunay(self.scale(self.points),
+                                         incremental=True,
+                                         qhull_options='Q11 QJ')
+        return self._tri
 
     def ip(self):
-        points = self.scale(self.points)
-        return interpolate.LinearNDInterpolator(points, self.values)
+        return interpolate.LinearNDInterpolator(self.tri, self.values)
 
     def ip_combined(self):
-        points = self.scale(self.points_combined)
-        values = self.values_combined
-
         # Interpolate the unfinished points
         if self._interp:
-            n_interp = list(self._interp.values())
-            bounds_are_done = not any(p in self._interp
-                                      for p in self._bounds_points)
-            if bounds_are_done:
-                values[n_interp] = self.ip()(points[n_interp])
+            points_interp = list(self._interp)
+            if self.bounds_are_done:
+                values_interp = self.ip()(points_interp)
             else:
                 # It is important not to return exact zeros because
                 # otherwise the algo will try to add the same point
                 # to the stack each time.
-                values[n_interp] = np.random.rand(
-                    len(n_interp), self.vdim) * 1e-15
+                values_interp = np.random.rand(
+                    len(points_interp), self.vdim) * 1e-15
 
-        return interpolate.LinearNDInterpolator(points, values)
+            for point, value in zip(points_interp, values_interp):
+                assert point in self.data_combined
+                self.data_combined[point] = value
+
+        return interpolate.LinearNDInterpolator(self.tri_combined,
+                                                self.values_combined)
 
     def add_point(self, point, value):
-        nmax = self.values_combined.shape[0]
-        if self.n >= nmax:
-            self._values = np.resize(self._values, [2*nmax + 10, self.vdim])
-            self._points = np.resize(self._points, [2*nmax + 10, self.ndim])
-
         point = tuple(point)
+        self.data_combined[point] = value
 
-        # When the point is not evaluated yet, add an entry to self._interp
-        # that saves the point and index.
         if value is None:
-            self._interp[point] = self.n
-            old_point = False
+            if point not in self._bounds_points:
+                self.tri_combined.add_points([self.scale(point)])
+                self._interp.add(point)
         else:
-            old_point = point in self._interp
-
-        # If the point is new add it a new value to _points and _values,
-        # otherwise get the index of the value that is being replaced.
-        if old_point:
-            n = self._interp.pop(point)
-        else:
-            n = self.n
-            self.n += 1
-
-        self._points[n] = point
-
-        try:
-            self._values[n] = value
-        except ValueError:
-            self._vdim = len(value)
-            self._values = np.resize(self._values, (nmax, self.vdim))
-            self._values[n] = value
+            if self.bounds_are_done:
+                self.tri.add_points([self.scale(point)])
+            self.data[point] = value
+            self._interp.discard(point)
 
         self._stack.pop(point, None)
 
@@ -229,7 +228,7 @@ class Learner2D(BaseLearner):
         if stack_till is None:
             stack_till = 1
 
-        if self.values_combined.shape[0] < self.ndim + 1:
+        if len(self.data_combined) < self.ndim + 1:
             raise ValueError("too few points...")
 
         # Interpolate
@@ -308,19 +307,18 @@ class Learner2D(BaseLearner):
 
     def loss(self, real=True):
         n = self.n_real if real else self.n
-        bounds_are_not_done = any(p in self._interp
-                                  for p in self._bounds_points)
-        if n <= 4 or bounds_are_not_done:
+        if n <= 4 or not self.bounds_are_done:
             return np.inf
         ip = self.ip() if real else self.ip_combined()
         losses = self.loss_per_triangle(ip)
         return losses.max()
 
     def remove_unfinished(self):
-        self._points = self.points.copy()
-        self._values = self.values.copy()
-        self.n -= len(self._interp)
-        self._interp = {}
+        self.data_combined = deepcopy(self.data)
+        self.tri_combined = spatial.Delaunay(self.scale(self.points),
+                                             incremental=True,
+                                             qhull_options='Q11 QJ')
+        self._interp = set()
 
     def plot(self, n_x=201, n_y=201, triangles_alpha=0):
         if self.vdim > 1:
