@@ -247,7 +247,7 @@ class Learner2D(BaseLearner):
             # Check if it is really new
             if point_new in self.data_combined:
                 # XXX: maybe check whether the point_new is not very close the another point
-                losses[jsimplex] = 0
+                losses[jsimplex] = -np.inf
                 continue
 
             self._stack[point_new] = losses[jsimplex]
