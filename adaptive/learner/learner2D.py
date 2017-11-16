@@ -213,6 +213,9 @@ class Learner2D(BaseLearner):
                 self.tri_combined.add_points([self.scale(point)])
                 self._interp.add(point)
         else:
+            if self._vdim is None:
+                self._vdim = len(value) if hasattr(value, '__len__') else None
+
             if self.bounds_are_done:
                 self.tri.add_points([self.scale(point)])
             self.data[point] = value
@@ -220,27 +223,30 @@ class Learner2D(BaseLearner):
 
         self._stack.pop(point, None)
 
-    def _fill_stack(self, stack_till=None):
-        if stack_till is None:
-            stack_till = 1
+        # Just for debugging:
+        if self._tri is not None:
+            for points, tri in [(self.points, self.tri),
+                                (self.points_combined, self.tri_combined)]:
+                assert np.max(points - self.unscale(tri.points)) == 0
 
+    def _fill_stack(self, stack_till=1):
         if len(self.data_combined) < self.ndim + 1:
             raise ValueError("too few points...")
 
         # Interpolate
         ip = self.ip_combined()
-        tri = ip.tri
 
         losses = self.loss_per_triangle(ip)
 
         for j, _ in enumerate(losses):
             jsimplex = np.argmax(losses)
-            point_new = tri.points[tri.vertices[jsimplex]]
+            point_new = ip.tri.points[ip.tri.vertices[jsimplex]]
             point_new = self.unscale(point_new.mean(axis=-2))
             point_new = tuple(np.clip(point_new, *zip(*self.bounds)))
 
             # Check if it is really new
             if point_new in self.data_combined:
+                # XXX: maybe check whether the point_new is not very close the another point
                 losses[jsimplex] = 0
                 continue
 
@@ -256,26 +262,22 @@ class Learner2D(BaseLearner):
         return points[:n], loss_improvements[:n]
 
     def _choose_and_add_points(self, n):
-        if n <= len(self._stack):
-            points, loss_improvements = self._split_stack(n)
-            self.add_data(points, itertools.repeat(None))
-        else:
-            points = []
-            loss_improvements = []
-            n_left = n
-            while n_left > 0:
-                # The while loop is needed because `stack_till` could be larger
-                # than the number of triangles between the points. Therefore
-                # it could fill up till a length smaller than `stack_till`.
-                no_bounds_in_stack = not any(p in self._stack
-                                             for p in self._bounds_points)
-                if no_bounds_in_stack:
-                    self._fill_stack(stack_till=n_left)
-                new_points, new_loss_improvements = self._split_stack(n_left)
-                points += new_points
-                loss_improvements += new_loss_improvements
-                self.add_data(new_points, itertools.repeat(None))
-                n_left -= len(new_points)
+        points = []
+        loss_improvements = []
+        n_left = n
+        while n_left > 0:
+            # The while loop is needed because `stack_till` could be larger
+            # than the number of triangles between the points. Therefore
+            # it could fill up till a length smaller than `stack_till`.
+            no_bounds_in_stack = not any(p in self._stack
+                                         for p in self._bounds_points)
+            if no_bounds_in_stack:
+                self._fill_stack(stack_till=n_left)
+            new_points, new_loss_improvements = self._split_stack(n_left)
+            points += new_points
+            loss_improvements += new_loss_improvements
+            self.add_data(new_points, itertools.repeat(None))
+            n_left -= len(new_points)
 
         return points, loss_improvements
 
@@ -287,8 +289,7 @@ class Learner2D(BaseLearner):
             return self._choose_and_add_points(n)
 
     def loss(self, real=True):
-        n = self.n_real if real else self.n
-        if n <= 4 or not self.bounds_are_done:
+        if not self.bounds_are_done:
             return np.inf
         ip = self.ip() if real else self.ip_combined()
         losses = self.loss_per_triangle(ip)
