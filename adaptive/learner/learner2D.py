@@ -233,33 +233,18 @@ class Learner2D(BaseLearner):
 
         losses = self.loss_per_triangle(ip)
 
-        def point_exists(p):
-            eps = np.finfo(float).eps * self.points_combined.ptp() * 100
-            if abs(p - self.points_combined).sum(axis=1).min() < eps:
-                return True
-            if self._stack:
-                _stack_points, _ = self._split_stack()
-                if abs(p - np.asarray(_stack_points)).sum(axis=1).min() < eps:
-                    return True
-            return False
-
         for j, _ in enumerate(losses):
-            # Estimate point of maximum curvature inside the simplex
             jsimplex = np.argmax(losses)
-            p = tri.points[tri.vertices[jsimplex]]
-            point_new = self.unscale(p.mean(axis=-2))
-
-            # XXX: not sure whether this is necessary it was there
-            # originally.
-            point_new = np.clip(point_new, *zip(*self.bounds))
+            point_new = tri.points[tri.vertices[jsimplex]]
+            point_new = self.unscale(point_new.mean(axis=-2))
+            point_new = tuple(np.clip(point_new, *zip(*self.bounds)))
 
             # Check if it is really new
-            if point_exists(point_new):
+            if point_new in self.data_combined:
                 losses[jsimplex] = 0
                 continue
 
-            # Add to stack
-            self._stack[tuple(point_new)] = losses[jsimplex]
+            self._stack[point_new] = losses[jsimplex]
 
             if len(self._stack) >= stack_till:
                 break
