@@ -108,11 +108,8 @@ class Learner2D(BaseLearner):
     """
 
     def __init__(self, function, bounds, loss_per_triangle=None):
-        self.ndim = len(bounds)
         self.loss_per_triangle = loss_per_triangle or _default_loss_per_triangle
         self._vdim = None
-        if self.ndim != 2:
-            raise ValueError("Only 2-D sampling supported.")
         self.bounds = tuple((float(a), float(b)) for a, b in bounds)
         self.data = collections.OrderedDict()
         self.data_combined = collections.OrderedDict()
@@ -166,14 +163,6 @@ class Learner2D(BaseLearner):
         return np.array(list(self.data.values()))
 
     @property
-    def n(self):
-        return len(self.data_combined)
-
-    @property
-    def n_real(self):
-        return len(self.data)
-
-    @property
     def bounds_are_done(self):
         return not any(p in self._interp for p in self._bounds_points)
 
@@ -223,14 +212,14 @@ class Learner2D(BaseLearner):
 
         self._stack.pop(point, None)
 
-        # Just for debugging:
+        # XXX: Just for debugging:
         if self._tri is not None:
             for points, tri in [(self.points, self.tri),
                                 (self.points_combined, self.tri_combined)]:
                 assert np.max(points - self.unscale(tri.points)) == 0
 
     def _fill_stack(self, stack_till=1):
-        if len(self.data_combined) < self.ndim + 1:
+        if len(self.data_combined) < len(self.bounds) + 1:
             raise ValueError("too few points...")
 
         # Interpolate
@@ -269,9 +258,7 @@ class Learner2D(BaseLearner):
             # The while loop is needed because `stack_till` could be larger
             # than the number of triangles between the points. Therefore
             # it could fill up till a length smaller than `stack_till`.
-            no_bounds_in_stack = not any(p in self._stack
-                                         for p in self._bounds_points)
-            if no_bounds_in_stack:
+            if not any(p in self._stack for p in self._bounds_points):
                 self._fill_stack(stack_till=n_left)
             new_points, new_loss_improvements = self._split_stack(n_left)
             points += new_points
@@ -308,7 +295,7 @@ class Learner2D(BaseLearner):
                                  '3D surface plots in bokeh.')
         x, y = self.bounds
         lbrt = x[0], y[0], x[1], y[1]
-        if self.n_real >= 4:
+        if len(self.data) >= 4:
             x = np.linspace(-0.5, 0.5, n_x)
             y = np.linspace(-0.5, 0.5, n_y)
             ip = self.ip()
