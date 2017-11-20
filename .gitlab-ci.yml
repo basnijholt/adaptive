@@ -2,6 +2,8 @@ image: quantumtinkerer/research
 
 stages:
   - test
+  - asv-setup
+  - benchmark
   - deploy
 
 test:
@@ -28,13 +30,19 @@ mirror repository:
     - ORIGIN_URL=$(git config --get remote.origin.url)
     - cd $(mktemp -d); git clone --bare $ORIGIN_URL .
     - git push --mirror $REPO
+  allow_failure: true
 
-benchmarks for master:
-  stage: test
+
+setup asv:
+  stage: asv-setup
   script:
     - pip install https://github.com/airspeed-velocity/asv/archive/master.zip  # we need github.com/airspeed-velocity/asv/pull/540 which is not in the latest release
-    - cd benchmarks
     - asv machine --yes
+
+benchmarks for master:
+  stage: benchmark
+  script:
+    - cd benchmarks
     - asv run --skip-existing-commits ALL 
   artifacts:
     paths:
@@ -43,8 +51,9 @@ benchmarks for master:
     expire_in: 7d
 
 benchmarks not master:
-  stage: test
+  stage: benchmark
   script:
+    - cd benchmarks
     - asv run ${CI_COMMIT_REF_NAME}{u}..master
   except:
     - master
