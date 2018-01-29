@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from collections import defaultdict, OrderedDict
 import functools
 from operator import itemgetter
 
@@ -39,8 +40,9 @@ class BalancingLearner(BaseLearner):
         self.function = functools.partial(dispatch, [l.function for l
                                                      in self.learners])
 
-        self._points = {}
-        self._loss = {}
+        self._points = defaultdict(OrderedDict)
+        self._loss = defaultdict(OrderedDict)
+        self.stack_size = 1
 
         if len(set(learner.__class__ for learner in self.learners)) > 1:
             raise TypeError('A BalacingLearner can handle only one type'
@@ -52,12 +54,17 @@ class BalancingLearner(BaseLearner):
             loss_improvements = []
             pairs = []
             for index, learner in enumerate(self.learners):
-                if index not in self._points:
-                    self._points[index] = learner.choose_points(
-                        n=1, add_data=False)
-                point, loss_improvement = self._points[index]
-                loss_improvements.append(loss_improvement[0])
-                pairs.append((index, point[0]))
+                if (index not in self._points
+                    or (index in self._points
+                        and len(self._points[index]) == 0)):
+                    pls = learner.choose_points(
+                        n=self.stack_size, add_data=False)
+                    for point, loss_improvement in zip(*pls):
+                        self._points[index][point] = loss_improvement
+
+                point, loss_improvement = list(self._points[index].items())[0]
+                loss_improvements.append(loss_improvement)
+                pairs.append((index, point))
             x, _ = max(zip(pairs, loss_improvements), key=itemgetter(1))
             points.append(x)
             self.add_point(x, None)
@@ -74,7 +81,7 @@ class BalancingLearner(BaseLearner):
 
     def add_point(self, x, y):
         index, x = x
-        self._points.pop(index, None)
+        self._points[index].pop(x, None)
         self._loss.pop(index, None)
         self.learners[index].add_point(x, y)
 
