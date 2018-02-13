@@ -120,6 +120,30 @@ class Runner:
                 self.executor.shutdown()
 
 
+def simple(learner, goal):
+    """Evaluate the learner's function until the goal is reached while
+    blocking.
+
+    Run the learner's `choose_points` and `add_point` methods
+    while blocking. For example; this is useful to
+    easily extract error messages.
+
+    Parameters
+    ----------
+    learner : adaptive.BaseLearer object
+        A learner that as choose_points, add_point, and function
+        methods.
+    goal : callable
+        The end condition for the calculation. This function must take the
+        learner as its sole argument, and return True if we should stop.
+    """
+    while not goal(learner):
+        xs, _ = learner.choose_points(1)
+        for x in xs:
+            y = learner.function(x)
+            learner.add_point(x, y)
+
+
 def replay_log(learner, log):
     """Apply a sequence of method calls to a learner.
 
