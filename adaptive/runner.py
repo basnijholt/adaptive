@@ -200,6 +200,7 @@ class _DummyExecutor:
 
 
 class _AsyncExecutor:
+    """Interface between concurrent.futures.Executor and asyncio."""
 
     def __init__(self, executor, ioloop):
         assert isinstance(executor, concurrent.Executor)
