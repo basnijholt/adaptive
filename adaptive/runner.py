@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import inspect
 import concurrent.futures as concurrent
 import warnings
 
@@ -62,12 +63,16 @@ class Runner:
             warnings.warn('Run adaptive.notebook_extension() to use '
                           'the Runner in a Jupyter notebook.')
 
+        if inspect.iscoroutinefunction(learner.function):
+            self.executor = _DummyExecutor()
+        else:
+            self.executor = ensure_async_executor(executor, self.ioloop)
+
+        self.ntasks = ntasks or self.executor.ncores
         # if we instantiate our own executor, then we are also responsible
         # for calling 'shutdown'
         self.shutdown_executor = shutdown_executor or (executor is None)
-        self.executor = ensure_async_executor(executor, self.ioloop)
 
-        self.ntasks = ntasks or self.executor.ncores
         self.learner = learner
         self.log = [] if log else None
 
@@ -178,6 +183,21 @@ class SequentialExecutor(concurrent.Executor):
 
 
 # Internal functionality
+
+class _DummyExecutor:
+    """Compatibility layer for running async functions."""
+
+    def submit(self, f, *args, **kwargs):
+        assert inspect.iscoroutinefunction(f)
+        return asyncio.ensure_future(f(*args, **kwargs))
+
+    def shutdown(self):
+        pass
+
+    @property
+    def ncores(self):
+        return 1
+
 
 class _AsyncExecutor:
 
