@@ -66,14 +66,9 @@ class BaseRunner:
         self.log = [] if log else None
         self.task = None
 
-    def start(self):
-        raise NotImplementedError()
-
 
 class BlockingRunner(BaseRunner):
     """Run a learner synchronously in an executor.
-
-    Calling start() blocks the current thread.
 
     Parameters
     ----------
@@ -112,11 +107,7 @@ class BlockingRunner(BaseRunner):
                              "with 'AsyncRunner'.")
         super().__init__(learner, goal, executor=executor, ntasks=ntasks,
                          log=log, shutdown_executor=shutdown_executor)
-
-    def start(self):
-        """Block the current thread until the goal is achieved"""
         self._run()
-        return self
 
     def _submit(self, x):
         return self.executor.submit(self.learner.function, x)
@@ -240,14 +231,10 @@ class AsyncRunner(BaseRunner):
                                              self.executor,
                                              self.learner.function)
 
-    def start(self):
         if in_ipynb() and not self.ioloop.is_running():
             warnings.warn('Run adaptive.notebook_extension() to use '
                           'the Runner in a Jupyter notebook.')
-        if self.task and not self.task.done():
-            raise RuntimeError('Runner is already running')
         self.task = self.ioloop.create_task(self._run())
-        return self
 
     async def _run(self):
         first_completed = asyncio.FIRST_COMPLETED
