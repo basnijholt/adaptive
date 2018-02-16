@@ -99,6 +99,6 @@ class AverageLearner(BaseLearner):
         vals = [v for v in self.data.values() if v is not None]
         if not vals:
             return hv.Histogram([[], []])
-        num_bins = int(max(5, sqrt(self.npoints))
+        num_bins = int(max(5, sqrt(self.npoints)))
         vals = hv.Points(vals)
         return hv.operation.histogram(vals, num_bins=num_bins, dimension=1)
