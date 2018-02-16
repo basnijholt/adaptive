@@ -170,7 +170,7 @@ def _info_html(runner):
     ]
 
     try:
-        info.append(('# of points', runner.learner.n))
+        info.append(('# of points', runner.learner.npoints))
     except Exception:
         pass
 
