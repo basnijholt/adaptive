@@ -3,6 +3,7 @@ import abc
 import collections
 from copy import deepcopy
 
+import numpy as np
 
 class BaseLearner(metaclass=abc.ABCMeta):
     """Base class for algorithms for learning a function 'f: X → Y'.
@@ -84,3 +85,10 @@ class BaseLearner(metaclass=abc.ABCMeta):
 
     def __setstate__(self, state):
         self.__dict__ = state
+
+
+class HasData:
+    def as_array(self):
+        points, values = zip(*self.data.items())
+        points = np.reshape(points, (-1, len(values)))
+        return np.vstack([points, values]).T

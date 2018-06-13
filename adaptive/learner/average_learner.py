@@ -5,9 +5,9 @@ from math import sqrt
 import numpy as np
 
 from ..notebook_integration import ensure_holoviews
-from .base_learner import BaseLearner
+from .base_learner import BaseLearner, HasData
 
-class AverageLearner(BaseLearner):
+class AverageLearner(BaseLearner, HasData):
     """A naive implementation of adaptive computing of averages.
 
     The learned function must depend on an integer input variable that

@@ -8,7 +8,7 @@ import numpy as np
 import sortedcontainers
 
 from ..notebook_integration import ensure_holoviews
-from .base_learner import BaseLearner
+from .base_learner import BaseLearner, HasData
 
 
 def uniform_loss(interval, scale, function_values):
@@ -55,7 +55,7 @@ def default_loss(interval, scale, function_values):
     return loss
 
 
-class Learner1D(BaseLearner):
+class Learner1D(BaseLearner, HasData):
     """Learns and predicts a function 'f:ℝ → ℝ^N'.
 
     Parameters

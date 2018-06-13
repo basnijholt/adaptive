@@ -8,7 +8,7 @@ import numpy as np
 from scipy import interpolate
 
 from ..notebook_integration import ensure_holoviews
-from .base_learner import BaseLearner
+from .base_learner import BaseLearner, HasData
 
 
 # Learner2D and helper functions.
@@ -143,7 +143,7 @@ def choose_point_in_triangle(triangle, max_badness):
     return point
 
 
-class Learner2D(BaseLearner):
+class Learner2D(BaseLearner, HasData):
     """Learns and predicts a function 'f: ℝ^2 → ℝ^N'.
 
     Parameters
