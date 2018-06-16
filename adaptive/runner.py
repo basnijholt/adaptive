@@ -274,7 +274,7 @@ class AsyncRunner(BaseRunner):
         self.start_time = time.time()
         self.end_time = None
         self.elapsed_function_time = 0
-        self.function = TimeReturn(self.learner.function)
+        self.function = WithTime(self.learner.function)
 
         # When the learned function is 'async def', we run it
         # directly on the event loop, and not in the executor.
@@ -401,8 +401,7 @@ class AsyncRunner(BaseRunner):
                 for fut in done:
                     x = xs.pop(fut)
                     try:
-                        y, t = fut.result()
-                        self.elapsed_function_time += t / _get_ncores(self.executor)
+                        y = fut.result()
                     except Exception as e:
                         tb = traceback.format_exc()
                         raise RuntimeError(
