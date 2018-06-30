@@ -12,6 +12,7 @@ import scipy.spatial
 import pytest
 
 from ..learner import *
+from ..learner.base_learner import is_sequence_of_points
 
 
 def generate_random_parametrization(f):
@@ -392,3 +393,19 @@ def test_learner_subdomain(learner_type, f, learner_kwargs):
        perform 'similarly' to learners defined on that subdomain only."""
     # XXX: not sure how to implement this. How do we measure "performance"?
     raise NotImplementedError()
+
+
+def test_is_sequence_of_points():
+    # Single point of a Learner2D with vector output
+    assert not is_sequence_of_points((1, 1), [1, 1])
+    assert not is_sequence_of_points((1, 1), np.array([1, 1]))
+    # Two points of a Learner2D with float output
+    assert is_sequence_of_points([(1, 1), (2, 2)], [1, 1])
+    # Single point of a Learner2D with float output
+    assert not is_sequence_of_points((1, 1), 1)
+    assert not is_sequence_of_points((1, 1), [1])
+    assert not is_sequence_of_points((1, 1), np.array([1]))
+    # Adding None to a single point of a Learner2D
+    assert not is_sequence_of_points((1, 1), itertools.repeat(None))
+    # Adding None for two points of a Learner1D
+    assert is_sequence_of_points([1, 1], itertools.repeat(None))

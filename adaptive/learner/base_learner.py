@@ -4,6 +4,18 @@ import collections
 from copy import deepcopy
 
 
+def is_sequence_of_points(x, y):
+    if not all(isinstance(i, collections.Iterable) for i in [x, y]):
+        return False
+    elif hasattr(y, '__len__') and len(y) == 1:
+        # If it got here, it might still be `x, y = (1, 2), [3]`
+        return False
+    elif isinstance(x, tuple):
+        # If x is a tuple, the input is a single point
+        return False
+    return True
+
+
 class BaseLearner(metaclass=abc.ABCMeta):
     """Base class for algorithms for learning a function 'f: X → Y'.
 
@@ -35,7 +47,7 @@ class BaseLearner(metaclass=abc.ABCMeta):
             If 'None', then it indicates that the value has not yet
             been computed.
         """
-        if all(isinstance(i, collections.Iterable) for i in [xvalues, yvalues]):
+        if is_sequence_of_points(xvalues, yvalues):
             for x, y in zip(xvalues, yvalues):
                 self._tell(x, y)
         else:
