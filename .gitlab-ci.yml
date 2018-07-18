@@ -37,7 +37,6 @@ mirror repository:
     - cd $(mktemp -d); git clone --bare $ORIGIN_URL .
     - git push --mirror $REPO
 
-
 benchmarks for master:
   stage: test
   script:
@@ -47,6 +46,8 @@ benchmarks for master:
       - benchmarks/results
       - benchmarks/env
     expire_in: 7d
+  only:
+    - master
 
 benchmarks not master:
   stage: test
