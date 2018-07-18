@@ -7,7 +7,7 @@ cache:
 # Untill we put asv in the Dockerimage
 before_script:
   - mkdir -p .pip
-  - pip install --cache-dir=.pip https://github.com/airspeed-velocity/asv/archive/master.zip  # we need github.com/airspeed-velocity/asv/pull/540 which is not in the latest release
+  - pip install asv
   - asv machine --config=benchmarks/asv.conf.json --yes
 
 stages:
