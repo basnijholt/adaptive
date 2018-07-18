@@ -52,12 +52,11 @@ benchmarks for master:
 benchmarks not master:
   stage: test
   script:
-    - git checkout ${CI_COMMIT_REF_NAME}
     - asv run --config=benchmarks/asv.conf.json master..${CI_COMMIT_REF_NAME}
   except:
     - master
 
-upload_benchmarks:
+upload benchmarks:
   stage: deploy
   before_script:
     - mkdir -p ~/.ssh && ssh-keyscan tnw-tn1.tudelft.net >> ~/.ssh/known_hosts
