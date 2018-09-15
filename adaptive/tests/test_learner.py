@@ -458,7 +458,9 @@ def test_learner1d_ask_does_not_return_known_points_when_returning_bounds():
     learner = Learner1D(lambda x: None, (-1, 1))
     learner.tell(0, 0)
     points, _ = learner.ask(3)
+    print(points)
     assert 0 not in points
+    assert False
 
 
 def small_deviations(x):
