@@ -453,6 +453,13 @@ def test_loss_at_machine_precision_interval_is_zero():
     # this means loss < 0.01 was reached
     assert learner.npoints != 1000
 
+@pytest.mark.focus
+def test_learner1d_ask_does_not_return_known_points_when_returning_bounds():
+    learner = Learner1D(lambda x: None, (-1, 1))
+    learner.tell(0, 0)
+    points, _ = learner.ask(3)
+    assert 0 not in points
+
 
 def small_deviations(x):
     return 0 if x <= 1 else 1 + 10**(-random.randint(12, 14))
