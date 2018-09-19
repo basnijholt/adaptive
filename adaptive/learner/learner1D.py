@@ -291,40 +291,40 @@ class Learner1D(BaseLearner):
         missing_bounds = [b for b in self.bounds if b not in self.data
                           and b not in self.pending_points]
 
-        if missing_bounds:
-            loss_improvements = [np.inf] * n
-            # XXX: should check if points are present in self.data or self.pending_points
-            points = np.linspace(*self.bounds, n + 2 - len(missing_bounds)).tolist()
-            if len(missing_bounds) == 1:
-                points = points[1:] if missing_bounds[0] == self.bounds[1] else points[:-1]
-        else:
-            def xs(x_left, x_right, n):
-                if n == 1:
-                    # This is just an optimization
-                    return []
-                else:
-                    step = (x_right - x_left) / n
-                    return [x_left + step * i for i in range(1, n)]
+        def xs(x_left, x_right, n):
+            if n == 1:
+                # This is just an optimization
+                return []
+            else:
+                step = (x_right - x_left) / n
+                return [x_left + step * i for i in range(1, n)]
 
-            # Calculate how many points belong to each interval.
-            x_scale = self._scale[0]
-            quals = [((-loss if not math.isinf(loss) else -(x[1] - x[0]) / x_scale, x, 1))
-                     for x, loss in self.losses_combined.items()]
-            heapq.heapify(quals)
+        # Calculate how many points belong to each interval.
+        x_scale = self._scale[0]
+        quals = [((-loss if not math.isinf(loss) else -(x[1] - x[0]) / x_scale, x, 1))
+                 for x, loss in self.losses_combined.items()]
+        heapq.heapify(quals)
 
-            for point_number in range(n):
-                quality, x, n = quals[0]
-                if abs(x[1] - x[0]) / (n + 1) <= self._dx_eps:
-                    # The interval is too small and should not be subdivided
-                    quality = np.inf
-                heapq.heapreplace(quals, (quality * n / (n + 1), x, n + 1))
+        for point_number in range(n):
+            quality, x, n = quals[0]
+            if abs(x[1] - x[0]) / (n + 1) <= self._dx_eps:
+                # The interval is too small and should not be subdivided
+                quality = np.inf
+            heapq.heapreplace(quals, (quality * n / (n + 1), x, n + 1))
 
-            points = list(itertools.chain.from_iterable(
-                xs(*x, n) for quality, x, n in quals))
+        points = list(itertools.chain.from_iterable(
+            xs(*x, n) for quality, x, n in quals))
 
-            loss_improvements = list(itertools.chain.from_iterable(
-                                     itertools.repeat(-quality, n - 1)
-                                     for quality, x, n in quals))
+        loss_improvements = list(itertools.chain.from_iterable(
+                                 itertools.repeat(-quality, n - 1)
+                                 for quality, x, n in quals))
+
+        for b in missing_bounds:
+            i = np.argmin(loss_improvements)
+            del loss_improvements[i]
+            del points[i]
+            points.append(b)
+            loss_improvements.append(np.inf)
 
         if add_data:
             self.tell_many(points, itertools.repeat(None))
