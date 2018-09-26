@@ -15,7 +15,10 @@ def standard_error(lst):
         return sys.float_info.max
     sum_f_sq = sum(x**2 for x in lst)
     mean = sum(x for x in lst) / n
-    std = sqrt((sum_f_sq - n * mean**2) / (n - 1))
+    try:
+        std = sqrt((sum_f_sq - n * mean**2) / (n - 1))
+    except ValueError:  # sum_f_sq - n * mean**2 is numerically 0
+        return 0
     return std / sqrt(n)
 
 
