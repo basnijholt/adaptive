@@ -41,36 +41,6 @@ class AverageLearner2D(Learner2D):
         self._ip = None
         self._stack.pop(point, None)
 
-    def _fill_stack(self, stack_till=1):
-        if len(self.data) + len(self.pending_points) < self.ndim + 1:
-            raise ValueError("too few points...")
-
-        # Interpolate
-        ip = self.ip_combined()
-
-        losses = self.loss_per_triangle(ip)
-
-        points_new = []
-        losses_new = []
-        for j, _ in enumerate(losses):
-            jsimplex = np.argmax(losses)
-            triangle = ip.tri.points[ip.tri.vertices[jsimplex]]
-            point_new = choose_point_in_triangle(triangle, max_badness=5)
-            point_new = tuple(self._unscale(point_new))
-            loss_new = abs(losses[jsimplex])  # only difference with Learner2D
-
-            points_new.append(point_new)
-            losses_new.append(loss_new)
-
-            self._stack[point_new] = loss_new
-
-            if len(self._stack) >= stack_till:
-                break
-            else:
-                losses[jsimplex] = -np.inf
-
-        return points_new, losses_new
-
     def ask(self, n, tell_pending=True):
         # Even if tell_pending is False we add the point such that _fill_stack
         # will return new points, later we remove these points if needed.
