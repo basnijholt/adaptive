@@ -218,7 +218,7 @@ class Learner2D(BaseLearner):
         self._vdim = None
         self.loss_per_triangle = loss_per_triangle or default_loss
         self.bounds = tuple((float(a), float(b)) for a, b in bounds)
-        self.data = OrderedDict()
+        self._data = OrderedDict()
         self._stack = OrderedDict()
         self.pending_points = set()
 
@@ -233,6 +233,10 @@ class Learner2D(BaseLearner):
         self._loss = np.inf
 
         self.stack_size = 10
+
+    @property
+    def data(self):
+        return self._data
 
     @property
     def xy_scale(self):
@@ -326,7 +330,7 @@ class Learner2D(BaseLearner):
 
     def tell(self, point, value):
         point = tuple(point)
-        self.data[point] = value
+        self._data[point] = value
         if not self.inside_bounds(point):
             return
         self.pending_points.discard(point)
