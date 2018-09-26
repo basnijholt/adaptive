@@ -41,9 +41,7 @@ class AverageLearner2D(Learner2D):
         self._ip = None
         self._stack.pop(point, None)
 
-    def ask(self, n, tell_pending=True):
-        # Even if tell_pending is False we add the point such that _fill_stack
-        # will return new points, later we remove these points if needed.
+    def _points_and_loss_improvements_from_stack(self):
         if len(self._stack) < 1:
             self._fill_stack(self.stack_size)
 
@@ -54,28 +52,4 @@ class AverageLearner2D(Learner2D):
         points, loss_improvements = map(list,
             zip(*sorted(stack.items(), key=lambda x: -x[1]))
         )
-
-        n_left = n - len(points)
-        for p in points[:n]:
-            self.tell_pending(p)
-
-        while n_left > 0:
-            # The while loop is needed because `stack_till` could be larger
-            # than the number of triangles between the points. Therefore
-            # it could fill up till a length smaller than `stack_till`.
-            new_points, new_loss_improvements = self._fill_stack(
-                stack_till=max(n_left, self.stack_size))
-            for p in new_points[:n_left]:
-                self.tell_pending(p)
-            n_left -= len(new_points)
-
-            points += new_points
-            loss_improvements += new_loss_improvements
-
-        if not tell_pending:
-            self._stack = OrderedDict(zip(points[:self.stack_size],
-                                          loss_improvements))
-            for point in points[:n]:
-                self.pending_points.discard(point)
-
-        return points[:n], loss_improvements[:n]
+        return points, loss_improvements
