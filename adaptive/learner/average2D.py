@@ -35,14 +35,9 @@ class AverageLearner2D(Learner2D):
     def data_sem(self):
         return {k: standard_error(v) for k, v in self._data.items()}
 
-    def tell(self, point, value):
-        point = tuple(point)
+    def _add_to_data(self, point, value):
+        """Used in 'learner.tell'."""
         self._data[point].append(value)  # only difference with Learner2D
-        if not self.inside_bounds(point):
-            return
-        self.pending_points.discard(point)
-        self._ip = None
-        self._stack.pop(point, None)
 
     def _points_and_loss_improvements_from_stack(self):
         if len(self._stack) < 1:

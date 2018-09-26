@@ -328,9 +328,14 @@ class Learner2D(BaseLearner):
         (xmin, xmax), (ymin, ymax) = self.bounds
         return xmin <= x <= xmax and ymin <= y <= ymax
 
+    def _add_to_data(self, point, value):
+        """"This function exists because the 'AverageLearner2D'
+        reimplements this."""
+        self._data[point] = value
+
     def tell(self, point, value):
         point = tuple(point)
-        self._data[point] = value
+        self._add_to_data(point, value)
         if not self.inside_bounds(point):
             return
         self.pending_points.discard(point)
