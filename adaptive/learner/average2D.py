@@ -27,7 +27,7 @@ def standard_error(lst):
 
 
 class AverageLearner2D(Learner2D):
-    def __init__(self, function, bounds, loss_per_triangle=None):
+    def __init__(self, function, bounds, weight=1, loss_per_triangle=None):
         super().__init__(function, bounds, loss_per_triangle)
         self._data = defaultdict(lambda: defaultdict(dict))
         self.pending_points = defaultdict(set)
@@ -35,6 +35,7 @@ class AverageLearner2D(Learner2D):
         # Adding a seed of 0 to the _stack to
         # make {((x, y), seed): loss_improvements, ...}.
         self._stack = {(p, 0): l for p, l in self._stack.items()}
+        self.weight = weight
 
     @property
     def bounds_are_done(self):
@@ -64,9 +65,16 @@ class AverageLearner2D(Learner2D):
         if len(self._stack) < 1:
             self._fill_stack(self.stack_size)
 
+        if self.data:
+            points, values = self._data_in_bounds()
+            z_scale = values.ptp()
+        else:
+            z_scale = 1
+
         # '_stack' is {new_point_inside_triangle: loss_improvement, ...}
-        # 'data_sem' is {existing_points: standard_error, ...}
-        data_sem = {(p, len(values)): sem for (p, sem), values in
+        # 'data_sem' is {existing_points: normalized_standard_error, ...}
+        #  where 'normalized_standard_error = weight * standard_error / z_scale'.
+        data_sem = {(p, len(values)): self.weight * sem / z_scale for (p, sem), values in
                     zip(self.data_sem.items(), self._data.values())}
         # stack = {((x, y), seed): loss_improvements_or_standard_error}
         stack_with_seed = {**self._stack, **data_sem}
