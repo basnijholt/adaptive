@@ -328,17 +328,21 @@ class Learner2D(BaseLearner):
         (xmin, xmax), (ymin, ymax) = self.bounds
         return xmin <= x <= xmax and ymin <= y <= ymax
 
+    def _add_to_pending(self, point):
+        self.pending_points.add(point)
+
+    def _remove_from_to_pending(self, point):
+        self.pending_points.discard(point)
+
     def _add_to_data(self, point, value):
-        """"This function exists because the 'AverageLearner2D'
-        reimplements this."""
-        self._data[point] = value
+        self.data[point] = value
 
     def tell(self, point, value):
         point = tuple(point)
         self._add_to_data(point, value)
         if not self.inside_bounds(point):
             return
-        self.pending_points.discard(point)
+        self._remove_from_to_pending(point)
         self._ip = None
         self._stack.pop(point, None)
 
@@ -346,9 +350,12 @@ class Learner2D(BaseLearner):
         point = tuple(point)
         if not self.inside_bounds(point):
             return
-        self.pending_points.add(point)
+        self._add_to_pending(point)
         self._ip_combined = None
         self._stack.pop(point, None)
+
+    def modify_point(self, point):
+        return point
 
     def _fill_stack(self, stack_till=1):
         if len(self.data) + len(self.pending_points) < self.ndim + 1:
@@ -366,6 +373,7 @@ class Learner2D(BaseLearner):
             triangle = ip.tri.points[ip.tri.vertices[jsimplex]]
             point_new = choose_point_in_triangle(triangle, max_badness=5)
             point_new = tuple(self._unscale(point_new))
+            point_new = self.modify_point(point_new)
             loss_new = losses[jsimplex]
 
             points_new.append(point_new)
@@ -410,7 +418,7 @@ class Learner2D(BaseLearner):
             self._stack = OrderedDict(zip(points[:self.stack_size],
                                           loss_improvements))
             for point in points[:n]:
-                self.pending_points.discard(point)
+                self._remove_from_to_pending(point)
 
         return points[:n], loss_improvements[:n]
 
