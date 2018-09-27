@@ -13,19 +13,6 @@ def unpack_point(point):
     return tuple(point[0]), point[1]
 
 
-def standard_error(lst):
-    n = len(lst)
-    if n < 3:
-        return sys.float_info.max
-    sum_f_sq = sum(x**2 for x in lst)
-    mean = sum(x for x in lst) / n
-    try:
-        std = sqrt((sum_f_sq - n * mean**2) / (n - 1))
-    except ValueError:  # sum_f_sq - n * mean**2 is numerically 0
-        return 0
-    return std / sqrt(n)
-
-
 class AverageLearner2D(Learner2D):
     def __init__(self, function, bounds, weight=1, loss_per_triangle=None):
         """Same as 'Learner2D', only the differences are in the doc-string.
@@ -42,6 +29,13 @@ class AverageLearner2D(Learner2D):
             otherwise adding new triangles will be prioritized (making the 
             loss of a triangle more important.)
 
+        Attributes
+        ----------
+        min_values_per_point : int, default 3
+            Minimum amount of values per point. This means that the
+            standard error of a point is infinity until there are
+            'min_values_per_point' for a point.
+
         Notes
         -----
         The total loss of the learner is still only determined by the
@@ -56,6 +50,19 @@ class AverageLearner2D(Learner2D):
         # make {((x, y), seed): loss_improvements, ...}.
         self._stack = {(p, 0): l for p, l in self._stack.items()}
         self.weight = weight
+        self.min_values_per_point = 3
+
+    def standard_error(self, lst):
+        n = len(lst)
+        if n < self.min_values_per_point:
+            return sys.float_info.max
+        sum_f_sq = sum(x**2 for x in lst)
+        mean = sum(x for x in lst) / n
+        try:
+            std = sqrt((sum_f_sq - n * mean**2) / (n - 1))
+        except ValueError:  # sum_f_sq - n * mean**2 is numerically 0
+            return 0
+        return std / sqrt(n)
 
     @property
     def bounds_are_done(self):
@@ -67,7 +74,7 @@ class AverageLearner2D(Learner2D):
 
     @property
     def data_sem(self):
-        return {k: standard_error(v.values()) for k, v in self._data.items()}
+        return {k: self.standard_error(v.values()) for k, v in self._data.items()}
 
     def _add_to_pending(self, point):
         xy, seed = unpack_point(point)
