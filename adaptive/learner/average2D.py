@@ -22,7 +22,10 @@ class AverageLearner2D(Learner2D):
         function : callable
             The function to learn. Must take a tuple of a tuple of two real
             parameters and a seed and return a real number.
-            So ((x, y), seed) → float.
+            So ((x, y), seed) → float, e.g.:
+            >>> def f(xy_seed):
+            ...     (x, y), seed = xy_seed
+            ...     return x * y + random(seed)
         weight : float, int, default 1
             When `weight > 1` adding more points to existing points will be
             prioritized (making the standard error of a point more imporant,)
@@ -89,7 +92,6 @@ class AverageLearner2D(Learner2D):
 
     def _add_to_data(self, point, value):
         xy, seed = unpack_point(point)
-        assert seed not in self._data[xy]
         self._data[xy][seed] = value
 
     def get_seed(self, point):
