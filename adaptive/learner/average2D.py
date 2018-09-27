@@ -28,6 +28,26 @@ def standard_error(lst):
 
 class AverageLearner2D(Learner2D):
     def __init__(self, function, bounds, weight=1, loss_per_triangle=None):
+        """Same as 'Learner2D', only the differences are in the doc-string.
+
+        Parameters
+        ----------
+        function : callable
+            The function to learn. Must take a tuple of a tuple of two real
+            parameters and a seed and return a real number.
+            So ((x, y), seed) → float.
+        weight : float, int, default 1
+            When `weight > 1` adding more points to existing points will be
+            prioritized (making the standard error of a point more imporant,)
+            otherwise adding new triangles will be prioritized (making the 
+            loss of a triangle more important.)
+
+        Notes
+        -----
+        The total loss of the learner is still only determined by the
+        max loss of the triangles.
+        """
+
         super().__init__(function, bounds, loss_per_triangle)
         self._data = defaultdict(lambda: defaultdict(dict))
         self.pending_points = defaultdict(set)
@@ -62,7 +82,7 @@ class AverageLearner2D(Learner2D):
 
     def _add_to_data(self, point, value):
         xy, seed = unpack_point(point)
-        assert seed not in self._data[xy], f'This seed ({seed}) already exists for xy {xy}.'
+        assert seed not in self._data[xy]
         self._data[xy][seed] = value
 
     def get_seed(self, point):
@@ -81,6 +101,7 @@ class AverageLearner2D(Learner2D):
         if self.data:
             points, values = self._data_in_bounds()
             z_scale = values.ptp()
+            z_scale = z_scale if z_scale > 0 else 1
         else:
             z_scale = 1
 
