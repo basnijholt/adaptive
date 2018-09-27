@@ -56,10 +56,23 @@ class AverageLearner2D(Learner2D):
     def _remove_from_to_pending(self, point):
         xy, seed = unpack_point(point)
         self.pending_points[xy].discard(seed)
+        if not self.pending_points[xy]:
+            # self.pending_points[xy] is now empty so delete the set()
+            del self.pending_points[xy]
 
     def _add_to_data(self, point, value):
         xy, seed = unpack_point(point)
+        assert seed not in self._data[xy], f'This seed ({seed}) already exists for xy {xy}.'
         self._data[xy][seed] = value
+
+    def get_seed(self, point):
+        seed = len(self._data[point]) + len(self.pending_points[point])
+        if seed in self._data[point] or seed in self.pending_points[point]:
+            # means that the seed already exists, for example
+            # when '_data[point].keys() | pending_points[point] == {0, 2}'.
+            raise NotImplementedError(f'This seed ({seed}) already exists for xy {point}.')
+            # (set(range(len(x))) - set(x)).pop()
+        return seed
 
     def _points_and_loss_improvements_from_stack(self):
         if len(self._stack) < 1:
@@ -74,9 +87,9 @@ class AverageLearner2D(Learner2D):
         # '_stack' is {new_point_inside_triangle: loss_improvement, ...}
         # 'data_sem' is {existing_points: normalized_standard_error, ...}
         #  where 'normalized_standard_error = weight * standard_error / z_scale'.
-        data_sem = {(p, len(values)): self.weight * sem / z_scale for (p, sem), values in
-                    zip(self.data_sem.items(), self._data.values())}
-        # stack = {((x, y), seed): loss_improvements_or_standard_error}
+        data_sem = {(p, self.get_seed(p)): self.weight * sem / z_scale
+                    for (p, sem) in self.data_sem.items()}
+        # stack = {((x, y), seed): loss_improvements_or_normalized_standard_error}
         stack_with_seed = {**self._stack, **data_sem}
 
         points, loss_improvements = map(list,
