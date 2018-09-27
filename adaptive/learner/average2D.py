@@ -39,6 +39,11 @@ class AverageLearner2D(Learner2D):
             standard error of a point is infinity until there are
             'min_values_per_point' for a point.
 
+        Methods
+        -------
+        mean_values_per_point : callable
+            Returns the average numbers of values per (x, y) value.
+
         Notes
         -----
         The total loss of the learner is still only determined by the
@@ -66,6 +71,9 @@ class AverageLearner2D(Learner2D):
         except ValueError:  # sum_f_sq - n * mean**2 is numerically 0
             return 0
         return std / sqrt(n)
+
+    def mean_values_per_point(self):
+        return np.mean([len(x.values()) for x in self._data.values()])
 
     @property
     def bounds_are_done(self):
