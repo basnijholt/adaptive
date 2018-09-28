@@ -66,10 +66,11 @@ class AverageLearner2D(Learner2D):
             return sys.float_info.max
         sum_f_sq = sum(x**2 for x in lst)
         mean = sum(x for x in lst) / n
-        try:
-            std = sqrt((sum_f_sq - n * mean**2) / (n - 1))
-        except ValueError:  # sum_f_sq - n * mean**2 is numerically 0
+        numerator = sum_f_sq - n * mean**2
+        if numerator < 0:
+            # This means that the numerator is ~ -1e-15
             return 0
+        std = sqrt(numerator / (n - 1))
         return std / sqrt(n)
 
     def mean_values_per_point(self):
