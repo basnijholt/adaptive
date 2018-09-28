@@ -114,7 +114,7 @@ class AverageLearner2D(Learner2D):
         return seed
 
     def ask(self, n, tell_pending=True):
-        points, loss_improvements = super().ask(n, tell_pending)
+        points, loss_improvements = super().ask(n, tell_pending=False)
 
         if self.data:
             _, values = self._data_in_bounds()
@@ -134,7 +134,14 @@ class AverageLearner2D(Learner2D):
         points, loss_improvements = zip(*sorted(zip(points, loss_improvements),
             key=operator.itemgetter(1), reverse=True))
 
-        return list(points), list(loss_improvements)
+        points = list(points)[:n]
+        loss_improvements = list(loss_improvements)[:n]
+
+        if tell_pending:
+            for p in points:
+                self.tell_pending(p)
+
+        return points, loss_improvements
 
     def inside_bounds(self, xy_seed):
         xy, seed = unpack_point(xy_seed)
