@@ -2,6 +2,7 @@
 from collections import OrderedDict, defaultdict
 import itertools
 from math import sqrt
+import operator
 import sys
 
 import numpy as np
@@ -112,12 +113,12 @@ class AverageLearner2D(Learner2D):
             # (set(range(len(x))) - set(x)).pop()
         return seed
 
-    def _points_and_loss_improvements_from_stack(self):
-        if len(self._stack) < 1:
-            self._fill_stack(self.stack_size)
+    def _points_and_loss_improvements_from_stack(self, n):
+        if self.bounds_are_done and len(self._stack) < n:
+            self._fill_stack(min(n, self.stack_size))
 
         if self.data:
-            points, values = self._data_in_bounds()
+            _, values = self._data_in_bounds()
             z_scale = values.ptp()
             z_scale = z_scale if z_scale > 0 else 1
         else:
@@ -127,14 +128,14 @@ class AverageLearner2D(Learner2D):
         # 'data_sem' is {existing_points: normalized_standard_error, ...}
         #  where 'normalized_standard_error = weight * standard_error / z_scale'.
         data_sem = {(p, self.get_seed(p)): self.weight * sem / z_scale
-                    for (p, sem) in self.data_sem.items()}
+                    for (p, sem) in self.data_sem.items() if sem > 0}
         # stack = {((x, y), seed): loss_improvements_or_normalized_standard_error}
         stack_with_seed = {**self._stack, **data_sem}
 
-        points, loss_improvements = map(list,
-            zip(*sorted(stack_with_seed.items(), key=lambda x: -x[1]))
-        )
-        return points, loss_improvements
+        points, loss_improvements = zip(*sorted(stack_with_seed.items(),
+            key=operator.itemgetter(1), reverse=True))
+
+        return list(points), list(loss_improvements)
 
     def inside_bounds(self, xy_seed):
         xy, seed = unpack_point(xy_seed)
