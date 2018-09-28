@@ -388,15 +388,11 @@ class Learner2D(BaseLearner):
 
         return points_new, losses_new
 
-    def _points_and_loss_improvements_from_stack(self, n):
-        points = list(self._stack.keys())
-        loss_improvements = list(self._stack.values())
-        return points[:n], loss_improvements[:n]
-
     def ask(self, n, tell_pending=True):
         # Even if tell_pending is False we add the point such that _fill_stack
         # will return new points, later we remove these points if needed.
-        points, loss_improvements = self._points_and_loss_improvements_from_stack(n)
+        points = list(self._stack.keys())
+        loss_improvements = list(self._stack.values())
         n_left = n - len(points)
         for p in points[:n]:
             self.tell_pending(p)

@@ -113,9 +113,8 @@ class AverageLearner2D(Learner2D):
             # (set(range(len(x))) - set(x)).pop()
         return seed
 
-    def _points_and_loss_improvements_from_stack(self, n):
-        if self.bounds_are_done and len(self._stack) < n:
-            self._fill_stack(min(n, self.stack_size))
+    def ask(self, n, tell_pending=True):
+        points, loss_improvements = super().ask(n, tell_pending)
 
         if self.data:
             _, values = self._data_in_bounds()
@@ -127,12 +126,12 @@ class AverageLearner2D(Learner2D):
         # '_stack' is {new_point_inside_triangle: loss_improvement, ...}
         # 'data_sem' is {existing_points: normalized_standard_error, ...}
         #  where 'normalized_standard_error = weight * standard_error / z_scale'.
-        data_sem = {(p, self.get_seed(p)): self.weight * sem / z_scale
-                    for (p, sem) in self.data_sem.items() if sem > 0}
-        # stack = {((x, y), seed): loss_improvements_or_normalized_standard_error}
-        stack_with_seed = {**self._stack, **data_sem}
+        for (p, sem) in self.data_sem.items():
+            if sem > 0:
+                points.append((p, self.get_seed(p)))
+                loss_improvements.append(self.weight * sem / z_scale)
 
-        points, loss_improvements = zip(*sorted(stack_with_seed.items(),
+        points, loss_improvements = zip(*sorted(zip(points, loss_improvements),
             key=operator.itemgetter(1), reverse=True))
 
         return list(points), list(loss_improvements)
