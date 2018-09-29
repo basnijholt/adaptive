@@ -15,7 +15,7 @@ def unpack_point(point):
 
 
 class AverageLearner2D(Learner2D):
-    def __init__(self, function, bounds, weight=1, loss_per_triangle=None):
+    def __init__(self, function, bounds, atol=None, rtol=None, loss_per_triangle=None):
         """Same as 'Learner2D', only the differences are in the doc-string.
 
         Parameters
@@ -58,10 +58,12 @@ class AverageLearner2D(Learner2D):
         # Adding a seed of 0 to the _stack to
         # make {((x, y), seed): loss_improvements, ...}.
         self._stack = {(p, 0): l for p, l in self._stack.items()}
-        self.weight = weight
         self.min_values_per_point = 3
 
-    def standard_error(self, lst):
+        self.atol = atol or np.inf
+        self.rtol = rtol or np.inf
+
+    def standard_error(self, lst, normalize=True):
         n = len(lst)
         if n < self.min_values_per_point:
             return sys.float_info.max
@@ -72,7 +74,9 @@ class AverageLearner2D(Learner2D):
             # This means that the numerator is ~ -1e-15
             return 0
         std = sqrt(numerator / (n - 1))
-        return std / sqrt(n)
+        standard_error = std / sqrt(n)
+        return max(standard_error / self.atol,
+                   standard_error / abs(mean) / self.rtol)
 
     def mean_values_per_point(self):
         return np.mean([len(x.values()) for x in self._data.values()])
@@ -116,20 +120,14 @@ class AverageLearner2D(Learner2D):
     def ask(self, n, tell_pending=True):
         points, loss_improvements = super().ask(n, tell_pending=False)
 
-        if self.data:
-            _, values = self._data_in_bounds()
-            z_scale = values.ptp()
-            z_scale = z_scale if z_scale > 0 else 1
-        else:
-            z_scale = 1
-
+        max_loss = max(loss_improvements)
         # '_stack' is {new_point_inside_triangle: loss_improvement, ...}
         # 'data_sem' is {existing_points: normalized_standard_error, ...}
         #  where 'normalized_standard_error = weight * standard_error / z_scale'.
         for (p, sem) in self.data_sem.items():
-            if sem > 0:
+            if sem > 1:
                 points.append((p, self.get_seed(p)))
-                loss_improvements.append(self.weight * sem / z_scale)
+                loss_improvements.append(sem)
 
         points, loss_improvements = zip(*sorted(zip(points, loss_improvements),
             key=operator.itemgetter(1), reverse=True))
