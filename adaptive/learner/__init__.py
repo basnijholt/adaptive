@@ -2,6 +2,7 @@
 from contextlib import suppress
 
 from .average_learner import AverageLearner
+from .average1D import AverageLearner1D
 from .base_learner import BaseLearner
 from .balancing_learner import BalancingLearner
 from .learner1D import Learner1D
