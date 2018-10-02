@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from itertools import permutations
 
 import numpy as np
 
@@ -21,7 +22,8 @@ class AverageLearner2D(Learner2D):
             So ((x, y), seed) → float, e.g.:
             >>> def f(xy_seed):
             ...     (x, y), seed = xy_seed
-            ...     return x * y + random(seed)
+            ...     random.seed(xy_seed)
+            ...     return x * y + random.uniform(-0.5, 0.5)
         weight : float, int, default 1
             When `weight > 1` adding more points to existing points will be
             prioritized (making the standard error of a point more imporant,)
@@ -56,10 +58,6 @@ class AverageLearner2D(Learner2D):
         self.weight = weight
         self.min_values_per_point = 3
 
-    @property
-    def bounds_are_done(self):
-        return all(p in self.data for p in self._bounds_points)
-
     def unpack_point(self, point):
         return tuple(point[0]), point[1]
 
@@ -75,6 +73,29 @@ class AverageLearner2D(Learner2D):
     def _ask_points_without_adding(self, n):
         points, loss_improvements = super().ask(n, tell_pending=False)
         return points, loss_improvements
+
+    def _get_neighbor_mapping_new_points(self, points):
+        tri = self.ip().tri
+        simplices = {p: tri.simplices[tri.find_simplex(p_scaled)]
+                     for p, p_scaled in zip(points, self._scale(points))}
+
+        points_unscaled = [tuple(p) for p in self._unscale(tri.points)]
+
+        return {p: [points_unscaled[n] for n in ns]
+                for p, ns in simplices.items()}
+
+    def _get_neighbor_mapping_existing_points(self):
+        tri = self.ip().tri
+        _neighbors = defaultdict(set)
+        for simplex in tri.vertices:
+            for i, j in permutations(simplex, 2):
+                _neighbors[i].add(j)
+
+        neighbors = {}
+        points = [tuple(p) for p in self._unscale(tri.points)]
+        for k, v in _neighbors.items():
+            neighbors[points[k]] = [points[i] for i in v]
+        return neighbors
 
     def inside_bounds(self, xy_seed):
         xy, seed = self.unpack_point(xy_seed)
@@ -106,6 +127,22 @@ class AverageLearner2D(Learner2D):
         """
         assert which in ('n', 'std')
         tmp_learner = Learner2D(lambda _: _, bounds=self.bounds)
-        f = lambda x: len(x) if which == 'n' else np.std(list(x.values()))
+
+        if which == 'n':
+            f = len
+        else:
+            f = lambda x: np.std(list(x.values()))
+
         tmp_learner._data = {k: f(v) for k, v in self._data.items()}
         return tmp_learner.plot()
+
+    def tell(self, point, value):
+        point = tuple(point)
+        point_exists = point[0] in self._data
+        self._add_to_data(point, value)
+        if not self.inside_bounds(point):
+            return
+        self._remove_from_to_pending(point)
+        if not point_exists:
+            self._ip = None
+        self._stack.pop(point, None)

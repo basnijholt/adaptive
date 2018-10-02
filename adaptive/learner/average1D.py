@@ -28,6 +28,14 @@ class AverageLearner1D(Learner1D):
         points = [(p, 0) for p in points]
         return points, loss_improvements
 
+    def _get_neighbor_mapping_new_points(self, points):
+        return {p: [n for n in self.find_neighbors(p, self.neighbors)
+                    if n is not None] for p in points}
+
+    def _get_neighbor_mapping_existing_points(self):
+        return {k: [x for x in v if x is not None]
+            for k, v in self.neighbors.items()}
+
     def unpack_point(self, x_seed):
         return x_seed
 
@@ -68,6 +76,7 @@ class AverageLearner1D(Learner1D):
         scatter = super().plot()
         if not with_sem:
             return scatter
+
         if self._data:
             hv = ensure_holoviews()
             xs, ys = zip(*sorted(self.data.items()))

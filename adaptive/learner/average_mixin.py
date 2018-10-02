@@ -8,6 +8,9 @@ import numpy as np
 from .learner1D import Learner1D
 
 
+inf = sys.float_info.max
+
+
 class AverageMixin:
     @property
     def data(self):
@@ -15,12 +18,13 @@ class AverageMixin:
 
     @property
     def data_sem(self):
-        return {k: self.standard_error(v.values()) for k, v in self._data.items()}
+        return {k: self.standard_error(v.values())
+            for k, v in self._data.items()}
 
     def standard_error(self, lst):
         n = len(lst)
         if n < self.min_values_per_point:
-            return sys.float_info.max
+            return inf
         sum_f_sq = sum(x**2 for x in lst)
         mean = sum(x for x in lst) / n
         numerator = sum_f_sq - n * mean**2
@@ -49,11 +53,11 @@ class AverageMixin:
         points = []
         loss_improvements = []
         for p, sem in self.data_sem.items():
-            if sem > 0:
-                points.append((p, self.get_seed(p)))
-                N = len(self._data[p] + len(self.pending_points.get(p, [])))
-                sem_improvement = (1 - sqrt(N - 1) / sqrt(N)) * sem
-                loss_improvements.append(self.weight * sem_improvement / scale)
+            points.append((p, self.get_seed(p)))
+            N = self.n_values(p)
+            sem_improvement = (1 - sqrt(N - 1) / sqrt(N)) * sem
+            loss_improvement = self.weight * sem_improvement / scale
+            loss_improvements.append(loss_improvement)
         return points, loss_improvements
 
     def _add_to_pending(self, point):
@@ -79,7 +83,11 @@ class AverageMixin:
     def ask(self, n, tell_pending=True):
         """Return n points that are expected to maximally reduce the loss."""
         points, loss_improvements = self._ask_points_without_adding(n)
+        loss_improvements = self._normalize_new_points_loss_improvements(
+            points, loss_improvements)
+
         p, l = self.loss_per_existing_point()
+        l = self._normalize_existing_points_loss_improvements(p, l)
         points += p
         loss_improvements += l
 
@@ -95,11 +103,51 @@ class AverageMixin:
 
         return points, loss_improvements
 
+    def n_values(self, point):
+        pending_points = self.pending_points.get(point, [])
+        return len(self._data[point]) + len(pending_points)
+
+    def _mean_values_per_neighbor(self, neighbors):
+        """The average number of neighbors of a 'point'."""
+        return {p: sum(self.n_values(n) for n in ns) / len(ns)
+            for p, ns in neighbors.items()}
+
+    def _normalize_new_points_loss_improvements(self, points, loss_improvements):
+        """If we are suggesting a new point, then its 'loss_improvement' should
+        be divided by the average number of values of its neigbors."""
+        if len(self._data) < 4:
+            return loss_improvements
+
+        only_points = [p for p, s in points]
+        neighbors = self._get_neighbor_mapping_new_points(only_points)
+        mean_values_per_neighbor = self._mean_values_per_neighbor(neighbors)
+
+        return [loss / mean_values_per_neighbor[p]
+            for (p, seed), loss in zip(points, loss_improvements)]
+
+    def _normalize_existing_points_loss_improvements(self, points, loss_improvements):
+        """If the neighbors of 'point' have twice as much values
+        on average, then that 'point' should have an infinite loss."""
+        if len(self._data) < 4:
+            return loss_improvements
+
+        neighbors = self._get_neighbor_mapping_existing_points()
+        mean_values_per_neighbor = self._mean_values_per_neighbor(neighbors)
+
+        def needs_more_data(p):
+            return mean_values_per_neighbor[p] > 1.5 * self.n_values(p)
+
+        return [inf if needs_more_data(p) else loss
+            for (p, seed), loss in zip(points, loss_improvements)]
+
 
 def add_average_mixin(cls):
     names = ('data', 'data_sem', 'standard_error', 'mean_values_per_point',
              'get_seed', 'loss_per_existing_point', '_add_to_pending',
-             '_remove_from_to_pending', '_add_to_data', 'ask')
+             '_remove_from_to_pending', '_add_to_data', 'ask', 'n_values',
+             '_normalize_new_points_loss_improvements',
+             '_normalize_existing_points_loss_improvements',
+             '_mean_values_per_neighbor')
 
     for name in names:
         setattr(cls, name, getattr(AverageMixin, name))

@@ -270,8 +270,7 @@ class Learner2D(BaseLearner):
 
     @property
     def bounds_are_done(self):
-        return not any((p in self.pending_points or p in self._stack)
-                       for p in self._bounds_points)
+        return all(p in self.data for p in self._bounds_points)
 
     def _data_in_bounds(self):
         if self.data:
