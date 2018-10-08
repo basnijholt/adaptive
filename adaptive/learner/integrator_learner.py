@@ -526,3 +526,9 @@ class IntegratorLearner(BaseLearner):
         xs, ys = zip(*[(x, y) for ival in ivals
                        for x, y in sorted(ival.done_points.items())])
         return hv.Path((xs, ys))
+
+    def _get_data(self):
+        raise NotImplementedError('')
+
+    def _set_data(self, data):
+        raise NotImplementedError('')
