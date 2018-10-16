@@ -15,4 +15,3 @@ dependencies:
   - ipywidgets
   - pip:
       - sphinx_rtd_theme
-      - recommonmark
