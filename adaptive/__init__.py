@@ -16,7 +16,7 @@ with suppress(ImportError):
     # Only available if 'scikit-optimize' is installed
     from .learner import SKOptLearner
 
-from .runner import Runner, BlockingRunner
+from .runner import Runner, AsyncRunner, BlockingRunner
 
 from ._version import __version__
 del _version
