@@ -21,6 +21,8 @@ class BaseLearner(metaclass=abc.ABCMeta):
         The number of evaluated points that have been added to the learner.
         Subclasses do not *have* to implement this attribute.
 
+    Notes
+    -----
     Subclasses may define a 'plot' method that takes no parameters
     and returns a holoviews plot.
     """
