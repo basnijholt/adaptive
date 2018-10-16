@@ -63,8 +63,8 @@ def uniform_loss(ip):
 
 
 def resolution_loss(ip, min_distance=0, max_distance=1):
-    """Loss function that is similar to the default loss function, but you can
-    set the maximimum and minimum size of a triangle.
+    """Loss function that is similar to the `default_loss` function, but you
+    can set the maximimum and minimum size of a triangle.
 
     Works with `~adaptive.Learner2D` only.
 
@@ -211,11 +211,11 @@ class Learner2D(BaseLearner):
         The size of the new candidate points stack. Set it to 1
         to recalculate the best points at each call to `ask`.
     aspect_ratio : float, int, default 1
-        Average ratio of `x` span over `y` span of a triangle. If
-        there is more detail in either `x` or `y` the `aspect_ratio`
-        needs to be adjusted. When `aspect_ratio > 1` the
-        triangles will be stretched along `x`, otherwise
-        along `y`.
+        Average ratio of ``x`` span over ``y`` span of a triangle. If
+        there is more detail in either ``x`` or ``y`` the ``aspect_ratio``
+        needs to be adjusted. When ``aspect_ratio > 1`` the
+        triangles will be stretched along ``x``, otherwise
+        along ``y``.
 
     Methods
     -------
@@ -240,9 +240,9 @@ class Learner2D(BaseLearner):
     This sampling procedure is not extremely fast, so to benefit from
     it, your function needs to be slow enough to compute.
 
-    'loss_per_triangle' takes a single parameter, 'ip', which is a
+    ``loss_per_triangle`` takes a single parameter, `ip`, which is a
     `scipy.interpolate.LinearNDInterpolator`. You can use the
-    *undocumented* attributes 'tri' and 'values' of 'ip' to get a
+    *undocumented* attributes ``tri`` and ``values`` of `ip` to get a
     `scipy.spatial.Delaunay` and a vector of function values.
     These can be used to compute the loss. The functions
     `adaptive.learner.learner2D.areas` and
@@ -470,14 +470,14 @@ class Learner2D(BaseLearner):
 
         Returns
         -------
-        plot : holoviews.Overlay or holoviews.HoloMap
-            A `holoviews.Overlay` of `holoviews.Image * holoviews.EdgePaths`.
+        plot : ``holoviews.Overlay`` or ``holoviews.HoloMap``
+            A ``holoviews.Overlay`` of ``holoviews.Image * holoviews.EdgePaths``.
             If the `learner.function` returns a vector output, a
-            `holoviews.HoloMap` of the `holoviews.Overlay`s wil be returned.
+            ``holoviews.HoloMap`` of the ``holoviews.Overlay``s wil be returned.
 
         Notes
         -----
-        The plot object that is returned if `learner.function` returns a
+        The plot object that is returned if 'learner.function' returns a
         vector *cannot* be used with the live_plotting functionality.
         """
         hv = ensure_holoviews()
