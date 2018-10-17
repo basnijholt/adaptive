@@ -47,6 +47,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'jupyter_sphinx.execute',
 ]
 
 source_parsers = {}
@@ -113,13 +114,37 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'adaptivedoc'
 
+
 # -- Extension configuration -------------------------------------------------
 
 default_role = 'autolink'
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
-                       'distributed': ('https://distributed.readthedocs.io/en/stable/', None),
-                       'holoviews': ('https://holoviews.org/', None),
-                       'ipyparallel': ('https://ipyparallel.readthedocs.io/en/stable/', None),
-                       'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'distributed': ('https://distributed.readthedocs.io/en/stable/', None),
+    'holoviews': ('https://holoviews.org/', None),
+    'ipyparallel': ('https://ipyparallel.readthedocs.io/en/stable/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
 }
+
+
+# -- Add Holoviews js and css ------------------------------------------------
+
+def setup(app):
+    import holoviews, os
+
+    widget_js, widget_css = holoviews.plotting.Renderer.html_assets(extras=False, backends=[], script=True)
+
+    fname_css = 'holoviews.css'
+    fname_js = 'holoviews.js'
+
+    os.makedirs('source/_static', exist_ok=True)
+
+    with open(f'source/_static/{fname_css}', 'w') as f:
+        f.write(widget_css)
+
+    with open(f'source/_static/{fname_js}', 'w') as f:
+        f.write(widget_js)
+
+    app.add_stylesheet(fname_css)
+    app.add_javascript(fname_js)

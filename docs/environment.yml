@@ -16,3 +16,4 @@ dependencies:
   - scikit-optimize
   - pip:
       - sphinx_rtd_theme
+      - git+https://github.com/jbweston/jupyter-sphinx.git@feature/execute
