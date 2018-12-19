@@ -19,10 +19,10 @@ jobs:
         import yaml, os
         with open("environment.yml", 'r') as f:
             deps = yaml.load(f)['dependencies']
-        os.environ['CONDA_PACAKGES'] = ' '.join(deps)
+        os.environ['CONDA_PACKAGES'] = ' '.join(deps)
   - task: CondaEnvironment@1
     inputs:
-      packageSpecs: $(CONDA_PACKAGES)
+      packageSpecs: $CONDA_PACKAGES
 
 - job: build_docker
   steps:
