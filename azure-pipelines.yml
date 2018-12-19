@@ -8,7 +8,6 @@ container: adaptive
 steps:
 - task: CondaEnvironment@1
   inputs:
-    file: environment.yml
     packageSpecs: >
       python=3.6
       sortedcontainers
