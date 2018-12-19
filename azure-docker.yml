@@ -1,0 +1,10 @@
+steps:
+- script: |
+    docker build -f Dockerfile -t pythonadaptive/adaptive .
+    docker login -u $user -p $password
+    docker push pythonadaptive/adaptive
+  env:
+    password: $(docker_password)
+    user: $(docker_user)
+  displayName: 'Build and push Docker image'
+  
