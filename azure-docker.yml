@@ -1,3 +1,10 @@
+trigger:
+  paths:
+    include:
+    - Dockerfile
+    - environment.yml
+    - test-requirements.txt
+
 steps:
 - script: |
     docker build -f Dockerfile -t pythonadaptive/adaptive .
