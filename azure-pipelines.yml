@@ -1,5 +1,5 @@
 steps:
-- task: CondaEnvironment@1
+- task: CondaEnvironment@0
   inputs:
     packageSpecs: >
       python=3.6
