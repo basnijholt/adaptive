@@ -1,50 +1,18 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 resources:
   containers:
   - container: adaptive
     image: pythonadaptive/adaptive:latest
 
-jobs:
-- job: conda_env
-  steps:
-  - task: PythonScript@0
-    displayName: 'Parse environment.yml'
-    inputs:
-      scriptSource: inline
-      script: |
-        import yaml, os
-        with open("environment.yml", 'r') as f:
-            deps = yaml.load(f)['dependencies']
-        os.environ['CONDA_PACKAGES'] = ' '.join(deps)
-  - task: CondaEnvironment@1
-    inputs:
-      packageSpecs: $CONDA_PACKAGES
+container: adaptive
 
-- job: build_docker
-  steps:
-  - script: |
-      docker build -f Dockerfile -t pythonadaptive/adaptive .
-      docker login -u $user -p $password
-      docker push pythonadaptive/adaptive
-    env:
-      password: $(docker_password)
-      user: $(docker_user)
-    displayName: 'Build and push Docker image'
-
-- job: test
-  container: adaptive
-  steps:
-  - script: py.test --verbose --cov=adaptive --cov-report term --cov-report html adaptive
-    displayName: 'Run the tests'
-  - script: |
-      MISSING_AUTHORS=$(git shortlog -s HEAD | sed -e "s/^[0-9\t ]*//"| xargs -i sh -c 'grep -q "{}" AUTHORS.md || echo "{} missing from authors"')
-      if [ ! -z "$MISSING_AUTHORS" ]; then { echo $MISSING_AUTHORS; exit 1; }; fi
-    continueOnError: true
-    displayName: 'Authors check'
-  - script: ./check_whitespace
-    continueOnError: true
-    displayName: 'Whitespace check'
+steps:
+- script: py.test --verbose --cov=adaptive --cov-report term --cov-report html adaptive
+  displayName: 'Run the tests'
+- script: |
+    MISSING_AUTHORS=$(git shortlog -s HEAD | sed -e "s/^[0-9\t ]*//"| xargs -i sh -c 'grep -q "{}" AUTHORS.md || echo "{} missing from authors"')
+    if [ ! -z "$MISSING_AUTHORS" ]; then { echo $MISSING_AUTHORS; exit 1; }; fi
+  continueOnError: true
+  displayName: 'Authors check'
+- script: ./check_whitespace
+  continueOnError: true
+  displayName: 'Whitespace check'
