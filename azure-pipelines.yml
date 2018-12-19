@@ -1,15 +1,19 @@
-resources:
-  containers:
-  - container: adaptive
-    image: pythonadaptive/adaptive:latest
-
-container: adaptive
-
 steps:
 - task: CondaEnvironment@1
   inputs:
-    packageSpecs: " python=3.6 sortedcontainers sortedcollections scipy holoviews ipyparallel distributed ipykernel>=4.8* jupyter_client>=5.2.2 ipywidgets scikit-optimize plotly"
-
+    packageSpecs: >
+      python=3.6
+      sortedcontainers
+      sortedcollections
+      scipy
+      holoviews
+      ipyparallel
+      distributed
+      ipykernel>=4.8*
+      jupyter_client>=5.2.2
+      ipywidgets
+      scikit-optimize
+      plotly
 - script: py.test --verbose --cov=adaptive --cov-report term --cov-report html adaptive
   displayName: 'Run the tests'
 
