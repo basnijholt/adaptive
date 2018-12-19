@@ -9,7 +9,22 @@ resources:
     image: pythonadaptive/adaptive:latest
 
 jobs:
-- job: build
+- job: conda_env
+  steps:
+  - task: PythonScript@0
+    displayName: 'Parse environment.yaml'
+    inputs:
+      scriptSource: inline
+      script: |
+        import yaml, os
+        with open("environment.yml", 'r') as f:
+            deps = yaml.load(f)['dependencies']
+        os.environ['CONDA_PACAKGES'] = ' '.join(deps)
+  - task: CondaEnvironment@1
+    inputs:
+      packageSpecs: '$(CONDA_PACKAGES)'
+
+- job: build_docker
   steps:
   - script: |
       docker build -f Dockerfile -t pythonadaptive/adaptive .
