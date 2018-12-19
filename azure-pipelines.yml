@@ -12,7 +12,7 @@ jobs:
 - job: conda_env
   steps:
   - task: PythonScript@0
-    displayName: 'Parse environment.yaml'
+    displayName: 'Parse environment.yml'
     inputs:
       scriptSource: inline
       script: |
