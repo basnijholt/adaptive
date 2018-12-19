@@ -1,9 +1,5 @@
 steps:
-
-- script: sudo install -d -m 0777 /usr/envs
-  displayName: Fix Conda permissions
-
-- task: CondaEnvironment@0
+- task: CondaEnvironment@1
   inputs:
     packageSpecs: >
       python=3.6
@@ -37,3 +33,4 @@ steps:
 - script: ./check_whitespace
   continueOnError: true
   displayName: 'Whitespace check'
+  
