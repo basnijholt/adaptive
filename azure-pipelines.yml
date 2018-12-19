@@ -6,7 +6,7 @@
 resources:
   containers:
   - container: adaptive
-    image: conda/miniconda3:latest
+    image: pythonadaptive/adaptive:latest
 
 jobs:
 - job: build
