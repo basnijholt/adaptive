@@ -22,7 +22,7 @@ jobs:
         os.environ['CONDA_PACAKGES'] = ' '.join(deps)
   - task: CondaEnvironment@1
     inputs:
-      packageSpecs: '$(CONDA_PACKAGES)'
+      packageSpecs: $(CONDA_PACKAGES)
 
 - job: build_docker
   steps:
