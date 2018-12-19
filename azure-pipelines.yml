@@ -10,8 +10,12 @@ resources:
 
 jobs:
 - job: build
-  pool:
-    vmImage: 'Ubuntu-16.04'
+  trigger:
+    paths:
+      include:
+      - Dockerfile
+      - environment.yml
+      - test-requirements.txt
   steps:
   - script: |
       docker build -f Dockerfile -t pythonadaptive/adaptive .
@@ -23,8 +27,6 @@ jobs:
     displayName: 'Build and push Docker image'
 
 - job: test
-  pool:
-    vmImage: 'Ubuntu-16.04'
   container: adaptive
   steps:
   - script: py.test --verbose --cov=adaptive --cov-report term --cov-report html adaptive
