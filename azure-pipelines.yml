@@ -1,0 +1,35 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+resources:
+  containers:
+  - container: adaptive
+    image: conda/miniconda3:latest
+
+jobs:
+- job: build
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  steps:
+  - script: |
+      docker build -f Dockerfile -t pythonadaptive/adaptive .
+      docker login -u $(docker_user) -p $docker_password
+      docker push pythonadaptive/adaptive
+    env:
+      pswd: $(dockerPassword)
+    displayName: 'Build and push Docker image'
+- job: test
+  pool:
+    vmImage: 'Ubuntu-16.04'
+  container: adaptive
+  steps:
+  - script: py.test --verbose --cov=adaptive --cov-report term --cov-report html adaptive
+    displayName: 'Run the tests'
+  - script: |
+      MISSING_AUTHORS=$(git shortlog -s HEAD | sed -e "s/^[0-9\t ]*//"| xargs -i sh -c 'grep -q "{}" AUTHORS.md || echo "{} missing from authors"')
+      if [ ! -z "$MISSING_AUTHORS" ]; then { echo $MISSING_AUTHORS; exit 1; }; fi
+    displayName: 'Authors check'
+  - script: ./check_whitespace
+    displayName: 'Check whitespace'
